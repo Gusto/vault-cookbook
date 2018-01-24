@@ -15,6 +15,8 @@ module VaultCookbook
     # @provides vault_installation
     # @example
     #   vault_installation '0.5.0'
+    # @example
+    #   vault_installation '0.9.1+ent' # this version requires archive_url
     # @since 2.0
     class VaultInstallationBinary < Chef::Provider
       include Poise(inversion: :vault_installation)
@@ -31,19 +33,28 @@ module VaultCookbook
       # @api private
       def self.default_inversion_options(node, new_resource)
         archive_basename = binary_basename(node, new_resource)
+        if new_resource.version.end_with?('+ent')
+          if !new_resource.archive_url
+            fail "archive_url MUST be set with enterprise version " + new_resource.version
+          else
+            archive_url = new_resource.archive_url
+            archive_checksum = new_resource.archive_checksum
+          end
+        else
+          archive_url = format(default_archive_url, version: new_resource.version, basename: archive_basename)
+          archive_checksum = binary_checksum(node, new_resource)
+        end
         super.merge(
           version: new_resource.version,
-          archive_url: format(default_archive_url, version: new_resource.version, basename: archive_basename),
+          archive_url: archive_url,
           archive_basename: archive_basename,
-          archive_checksum: binary_checksum(node, new_resource),
+          archive_checksum: archive_checksum,
           extract_to: '/opt/vault'
         )
       end
 
       def action_create
-        archive_url = format(options[:archive_url],
-          version: options[:version],
-          basename: options[:archive_basename])
+        archive_url = options[:archive_url]
 
         notifying_block do
           directory ::File.join(options[:extract_to], new_resource.version) do

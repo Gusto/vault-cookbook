@@ -27,6 +27,9 @@ module VaultCookbook
       # @return [String]
       attribute(:version, kind_of: String, name_attribute: true)
 
+      attribute(:archive_url, kind_of: String, name_attribute: true)
+      attribute(:archive_checksum, kind_of: String, name_attribute: true)
+
       def vault_program
         @program ||= provider_for_action(:vault_program).vault_program
       end
